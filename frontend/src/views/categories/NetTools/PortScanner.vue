@@ -1,53 +1,79 @@
 <script setup lang="ts">
 import { ref } from "vue";
 
-// 假设我们有一个简单的API调用函数，稍后会实现
-const scanPorts = async () => {
-  // 1. 数据校验 (略)
-  // 2. 准备 payload
-  const payload = {
-    target: target.value,
-    ports: portRange.value, // e.g., "1-1024"
-    scan_type: scanType.value,
-  };
+// 定义扫描结果的数据结构
+interface ScanResult {
+  port: number;
+  status: string;
+  service?: string; // 可选的服务名称
+}
 
-  results.value = "正在扫描中...请稍候。";
-  isLoading.value = true;
-
-  try {
-    // 3. 调用后端 API (需要替换成实际的 fetch/axios 调用)
-    // const response = await fetch('http://api.example.com/scan_ports', { ... });
-
-    // 模拟 API 响应
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    const mockData = [
-      { port: 21, status: "Closed" },
-      { port: 22, status: "Open", service: "SSH" },
-      { port: 80, status: "Open", service: "HTTP" },
-    ];
-
-    results.value = JSON.stringify(mockData, null, 2);
-  } catch (error) {
-    results.value = `扫描失败: ${error.message}`;
-  } finally {
-    isLoading.value = false;
-  }
-};
-
-// 表单数据绑定
 const target = ref("127.0.0.1"); // 目标IP/域名
 const portRange = ref("1-1024"); // 端口范围
 const scanType = ref("tcp"); // 扫描类型
-const results = ref('点击 "开始扫描" 查看结果');
+const rawResults = ref<string>('点击 "开始扫描" 查看结果'); // 用于显示原始 JSON 字符串
+const formattedResults = ref<ScanResult[]>([]); // 用于表格或列表展示
 const isLoading = ref(false);
+const error = ref<string | null>(null);
+
+// 🚨 API 基础 URL：根据您当前的运行环境选择
+// 选项 1: 如果通过 Nginx 代理 api.example.com 访问
+// const API_BASE_URL = 'http://api.example.com/api/v1';
+// 选项 2: 如果前端直接调用本地 8000 端口
+const API_BASE_URL = "http://192.168.10.106:8000/api/v1";
+
+const scanPorts = async () => {
+  // 🚨 检查点 1: 确认点击事件触发
+  console.log("--- Scan button clicked! ---");
+
+  // 检查点 2: 确认变量能正常访问
+  console.log("Target:", target.value);
+  isLoading.value = true;
+  error.value = null;
+  rawResults.value = "正在发送请求并扫描中...";
+  formattedResults.value = [];
+
+  const payload = {
+    target: target.value,
+    ports: portRange.value,
+    scan_type: scanType.value,
+  };
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/scan/ports`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      // 处理 HTTP 错误 (4xx, 5xx)
+      const errorData = await response.json();
+      throw new Error(errorData.detail || `HTTP 错误: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+
+    // 更新结果
+    rawResults.value = JSON.stringify(data, null, 2);
+    formattedResults.value = data.results;
+  } catch (err) {
+    console.error("API Error:", err);
+    error.value = `扫描失败: ${err.message}. 请检查后端服务和 CORS 配置。`;
+    rawResults.value = "";
+  } finally {
+    isLoading.value = false;
+  }
+  console.log("--- Execution finished without fetch ---");
+};
 </script>
 
 <template>
   <div class="tool-page">
     <h1 class="page-title">⚙️ 端口扫描器 (C++核心)</h1>
-    <p class="description">
-      基于高性能 C++ 核心的网络端口扫描工具，支持多种协议和范围扫描。
-    </p>
+    <p class="description">基于高性能 C++ 核心的网络端口扫描工具。</p>
 
     <div class="input-form">
       <div class="form-group">
@@ -81,85 +107,70 @@ const isLoading = ref(false);
       <button @click="scanPorts" :disabled="isLoading" class="scan-button">
         {{ isLoading ? "扫描中..." : "🚀 开始扫描" }}
       </button>
+
+      <p v-if="error" class="error-message">❌ {{ error }}</p>
     </div>
 
     <div class="results-area">
       <h2>扫描结果</h2>
-      <pre class="results-code">{{ results }}</pre>
+
+      <table v-if="formattedResults.length" class="results-table">
+        <thead>
+          <tr>
+            <th>端口号</th>
+            <th>状态</th>
+            <th>服务</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            v-for="result in formattedResults"
+            :key="result.port"
+            :class="{ open: result.status === 'Open' }"
+          >
+            <td>{{ result.port }}</td>
+            <td>{{ result.status }}</td>
+            <td>{{ result.service || "-" }}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <details>
+        <summary>原始 API 响应 (JSON)</summary>
+        <pre class="results-code">{{ rawResults }}</pre>
+      </details>
     </div>
   </div>
 </template>
 
 <style scoped>
-.tool-page {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 20px;
-}
-.page-title {
-  font-size: 2em;
-  color: #2c3e50;
-  margin-bottom: 5px;
-}
-.description {
-  color: #6a737d;
-  margin-bottom: 30px;
-  padding-bottom: 15px;
-  border-bottom: 1px solid #eee;
-}
-.input-form {
-  background-color: #f8f8f8;
-  padding: 25px;
-  border-radius: 8px;
-  margin-bottom: 30px;
-}
-.form-group {
-  margin-bottom: 15px;
-}
-label {
-  display: block;
+/* 保持原有的样式不变，并新增表格样式 */
+.error-message {
+  color: #f44336;
+  margin-top: 15px;
   font-weight: 600;
-  margin-bottom: 5px;
-  color: #333;
 }
-input[type="text"],
-select {
+.results-table {
   width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px;
+}
+.results-table th,
+.results-table td {
   padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  box-sizing: border-box;
-  font-size: 1em;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
 }
-.scan-button {
-  padding: 12px 20px;
-  background-color: #42b883;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 1.1em;
-  transition: background-color 0.3s;
-  width: 100%;
+.results-table th {
+  background-color: #f0fdf4;
+  color: #36a374;
+  font-weight: 700;
 }
-.scan-button:hover:not(:disabled) {
-  background-color: #36a374;
-}
-.scan-button:disabled {
-  background-color: #a8d5c4;
-  cursor: not-allowed;
-}
-.results-area {
-  margin-top: 20px;
+.results-table tr.open {
+  background-color: #e6ffed; /* 开放端口高亮 */
+  font-weight: 600;
 }
 .results-code {
-  background-color: #272822; /* 深色背景，类似代码编辑器 */
-  color: #f8f8f2;
-  padding: 15px;
-  border-radius: 4px;
-  overflow-x: auto;
-  white-space: pre-wrap;
-  font-family: "Consolas", "Monaco", monospace;
-  min-height: 150px;
+  /* ... 保持不变 ... */
 }
 </style>

@@ -1,51 +1,37 @@
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import uvicorn
+from .api.v1.api import api_router  # 导入聚合路由
 
-# 移除 import json
+app = FastAPI(
+    title="Kali Utility Web API", description="High-performance backend powered by C++ core."
+)
 
-# 假设 libcore 是在顶层导入（即 name="libcore"）
-try:
-    import libcore
-except ImportError:
-    print("FATAL ERROR: Could not import libcore. Did you run 'pip install -e .'?")
-    raise
-
-app = FastAPI(title="Simple Hello Service")
+# --- CORS 配置 ---
+origins = [
+    "http://127.0.0.1:5173",
+    "http://localhost:5173",
+    "http://192.168.10.106:5173",  # 确保 IP 地址也可以访问
+]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 仅用于开发环境
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-
-@app.get("/api/get_hello/")
-async def get_hello_from_cpp():
-    print("FastAPI 收到请求，调用 C++ 核心 func_test()...")
-
-    try:
-        # 调用 C++ 导出的函数
-        result_from_cpp = libcore.func_test()
-
-        # FastAPI 会自动处理 JSONResponse，无需手动 import json
-        return JSONResponse(
-            content={
-                "status": "success",
-                "message": "C++ 调用成功",
-                "hello_message": result_from_cpp,
-            }
-        )
-
-    except Exception as e:
-        print(f"C++ Core 调用错误：{e}")
-        # 返回 500 错误
-        raise HTTPException(status_code=500, detail=f"Internal C++ Core Error: {e}")
+# 注册所有 API 路由，使用 /api 前缀
+app.include_router(api_router, prefix="/api/v1")
 
 
-if __name__ == "__main__":
-    # 🚨 关键修正：确保使用 __main__
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+# 根路径健康检查 (可选)
+@app.get("/")
+def read_root():
+    return {"status": "ok", "message": "API is running"}
+
+
+# 之前的测试路由可以移除或修改
+# @app.get("/api/get_hello/")
+# async def get_hello_from_cpp():
+#     return {"message": "hello,world"}

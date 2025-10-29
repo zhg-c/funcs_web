@@ -1,10 +1,8 @@
 <script setup lang="ts">
-import AppLayout from "./components/layout/AppLayout.vue";
-import HomeView from "./views/HomeView.vue";
+import { RouterView } from "vue-router";
+// ⚠️ 确保这里没有导入 TheHeader, TheFooter, AppLayout 等任何布局组件
 </script>
 
 <template>
-  <AppLayout>
-    <template #main-content> <HomeView /> </template>
-  </AppLayout>
+  <RouterView />
 </template>

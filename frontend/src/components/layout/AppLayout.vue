@@ -3,7 +3,7 @@
     <TheHeader />
     <main class="main-content">
       <div class="core-area">
-        <slot name="main-content"></slot>
+        <RouterView />
       </div>
       <aside class="sidebar-area">
         <AdSidebar />
@@ -17,6 +17,7 @@
 import TheHeader from "./TheHeader.vue";
 import TheFooter from "./TheFooter.vue";
 import AdSidebar from "./AdSidebar.vue";
+import { RouterView } from "vue-router";
 // 无需额外的 TS 逻辑
 </script>
 
