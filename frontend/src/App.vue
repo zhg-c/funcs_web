@@ -1,12 +1,10 @@
 <script setup lang="ts">
 import AppLayout from "./components/layout/AppLayout.vue";
-import Hello from "./components/layout/Hello.vue";
+import HomeView from "./views/HomeView.vue";
 </script>
 
 <template>
   <AppLayout>
-    <template #main-content>
-      <Hello />
-    </template>
+    <template #main-content> <HomeView /> </template>
   </AppLayout>
 </template>

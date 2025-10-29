@@ -1,5 +1,11 @@
-import { createApp } from "vue";
-import "./style.css";
-import App from "./App.vue";
+import "./assets/main.css";
 
-createApp(App).mount("#app");
+import { createApp } from "vue";
+import App from "./App.vue";
+import router from "./router"; // ⬅️ 确保导入路由
+
+const app = createApp(App);
+
+app.use(router); // ⬅️ 注册 Vue Router
+
+app.mount("#app");
