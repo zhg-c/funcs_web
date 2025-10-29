@@ -1,9 +1,3 @@
-<script setup lang="ts">
-import AdSidebar from "./AdSidebar.vue";
-import TheHeader from "./TheHeader.vue";
-import TherFooter from "./TherFooter.vue";
-</script>
-
 <template>
   <div class="app-container">
     <TheHeader />
@@ -15,6 +9,40 @@ import TherFooter from "./TherFooter.vue";
         <AdSidebar />
       </aside>
     </main>
-    <TherFooter />
+    <TheFooter />
   </div>
 </template>
+
+<script setup lang="ts">
+import TheHeader from "./TheHeader.vue";
+import TheFooter from "./TheFooter.vue";
+import AdSidebar from "./AdSidebar.vue";
+// 无需额外的 TS 逻辑
+</script>
+
+<style scoped>
+.app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: #f0f2f5;
+}
+.main-content {
+  flex-grow: 1; /* 占据剩余垂直空间 */
+  display: flex;
+  max-width: 1200px;
+  width: 90%;
+  margin: 20px auto;
+  gap: 20px;
+}
+.core-area {
+  flex: 3; /* 核心内容占据 75% 宽度 */
+  background-color: white;
+  padding: 30px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+.sidebar-area {
+  flex: 1; /* 侧边栏占据 25% 宽度 */
+}
+</style>
