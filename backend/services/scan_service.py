@@ -17,6 +17,13 @@ def process_port_scan(request: ScanRequest) -> list[ScanResult]:
     raw_data = execute_scan(request.target, request.ports, request.scan_type)
 
     # 3. 数据转换 (将 C++ 返回的字典转换为 Pydantic 模型)
-    results: list[ScanResult] = [ScanResult(**r) for r in raw_data]
+    # results: list[ScanResult] = [ScanResult(**r) for r in raw_data]
+    results = []
+    for r in raw_data:
+        # 强制将 Pybind11 对象属性转换为标准 Python 字典
+        d = {"port": r.port, "status": r.status, "service": r.service}
+
+        # 使用字典解包构造 Pydantic 模型
+        results.append(ScanResult(**d))
 
     return results
