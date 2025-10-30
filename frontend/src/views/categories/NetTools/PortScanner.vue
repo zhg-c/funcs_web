@@ -71,106 +71,176 @@ const scanPorts = async () => {
 </script>
 
 <template>
-  <div class="tool-page">
-    <h1 class="page-title">⚙️ 端口扫描器 (C++核心)</h1>
-    <p class="description">基于高性能 C++ 核心的网络端口扫描工具。</p>
+  <div class="port-scanner-view">
+    <h1 class="text-3xl font-bold mb-6 text-gray-800">端口扫描器</h1>
 
-    <div class="input-form">
-      <div class="form-group">
-        <label for="target">目标地址 (IP/域名)</label>
-        <input
-          id="target"
-          v-model="target"
-          type="text"
-          placeholder="例如: 192.168.1.1 或 example.com"
-        />
+    <!-- 输入表单区域 -->
+    <div class="input-form bg-gray-50 p-6 rounded-xl shadow-inner mb-6">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+        <!-- 目标 IP/域名 -->
+        <div class="col-span-1 md:col-span-2">
+          <label
+            for="target"
+            class="block text-sm font-medium text-gray-700 mb-1"
+            >目标 IP / 域名</label
+          >
+          <input
+            id="target"
+            v-model="target"
+            type="text"
+            placeholder="e.g., 127.0.0.1 or example.com"
+            class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150"
+          />
+        </div>
+
+        <!-- 端口范围 -->
+        <div class="col-span-1">
+          <label
+            for="ports"
+            class="block text-sm font-medium text-gray-700 mb-1"
+            >端口范围 (Port Range)</label
+          >
+          <input
+            id="ports"
+            v-model="portRange"
+            type="text"
+            placeholder="e.g., 1-1024 or 22,80,443"
+            class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150"
+          />
+        </div>
+
+        <!-- 协议 (仅保留 TCP 选项) -->
+        <div class="col-span-1">
+          <label
+            for="scan-type"
+            class="block text-sm font-medium text-gray-700 mb-1"
+            >协议</label
+          >
+          <select
+            id="scan-type"
+            v-model="scanType"
+            class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 bg-white"
+          >
+            <option value="tcp">TCP (默认)</option>
+            <!-- 移除 UDP 选项 -->
+          </select>
+        </div>
       </div>
 
-      <div class="form-group">
-        <label for="ports">端口范围 (Port Range)</label>
-        <input
-          id="ports"
-          v-model="portRange"
-          type="text"
-          placeholder="例如: 1-1024, 80, 443"
-        />
-      </div>
-
-      <div class="form-group">
-        <label for="scan-type">扫描类型</label>
-        <select id="scan-type" v-model="scanType">
-          <option value="tcp">TCP SYN/Connect</option>
-          <option value="udp">UDP Scan</option>
-        </select>
-      </div>
-
-      <button @click="scanPorts" :disabled="isLoading" class="scan-button">
-        {{ isLoading ? "扫描中..." : "🚀 开始扫描" }}
+      <!-- 扫描按钮 -->
+      <button
+        @click="scanPorts"
+        :disabled="isLoading"
+        class="scan-button mt-6 w-full py-3 px-4 font-semibold rounded-lg shadow-md transition duration-200 ease-in-out transform hover:scale-[1.01] focus:outline-none focus:ring-4 focus:ring-indigo-500 focus:ring-opacity-50"
+        :class="{
+          'bg-indigo-600 text-white hover:bg-indigo-700': !isLoading,
+          'bg-gray-400 text-gray-700 cursor-not-allowed': isLoading,
+        }"
+      >
+        <span v-if="isLoading">
+          <i class="fas fa-spinner fa-spin mr-2"></i> 扫描中...
+        </span>
+        <span v-else> 🚀 开始扫描 </span>
       </button>
-
-      <p v-if="error" class="error-message">❌ {{ error }}</p>
     </div>
 
+    <!-- 状态和结果区域 -->
     <div class="results-area">
-      <h2>扫描结果</h2>
+      <h2 class="text-2xl font-semibold mb-4 text-gray-800">扫描结果</h2>
 
-      <table v-if="formattedResults.length" class="results-table">
-        <thead>
-          <tr>
-            <th>端口号</th>
-            <th>状态</th>
-            <th>服务</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
-            v-for="result in formattedResults"
-            :key="result.port"
-            :class="{ open: result.status === 'Open' }"
-          >
-            <td>{{ result.port }}</td>
-            <td>{{ result.status }}</td>
-            <td>{{ result.service || "-" }}</td>
-          </tr>
-        </tbody>
-      </table>
+      <!-- 状态消息 -->
+      <div
+        v-if="formattedResults.length"
+        class="p-3 rounded-lg font-medium mb-4"
+      ></div>
 
-      <details>
-        <summary>原始 API 响应 (JSON)</summary>
-        <pre class="results-code">{{ rawResults }}</pre>
+      <!-- 紧凑数字网格布局 -->
+      <div v-if="formattedResults.length" class="results-grid">
+        <div
+          v-for="result in formattedResults"
+          :key="result.port"
+          class="result-block"
+          :class="{
+            open: result.status === 'Open',
+            closed: result.status === 'Closed',
+            filtered: result.status === 'Filtered',
+          }"
+          :title="`Port: ${result.port}\nStatus: ${result.status}\nService: ${
+            result.service || '未知'
+          }`"
+        >
+          {{ result.port }}
+        </div>
+      </div>
+
+      <!-- 原始结果（调试用） -->
+      <details class="raw-results-details mt-6">
+        <summary
+          class="cursor-pointer font-medium text-gray-600 hover:text-gray-800 transition duration-150"
+        >
+          原始 API 响应 (JSON)
+        </summary>
+        <pre
+          class="results-code bg-gray-100 p-4 rounded-lg mt-2 text-sm overflow-x-auto"
+          >{{ rawResults }}</pre
+        >
       </details>
     </div>
   </div>
 </template>
-
 <style scoped>
-/* 保持原有的样式不变，并新增表格样式 */
-.error-message {
-  color: #f44336;
-  margin-top: 15px;
-  font-weight: 600;
-}
-.results-table {
-  width: 100%;
-  border-collapse: collapse;
+/* 紧凑数字网格样式 */
+.results-grid {
+  display: grid;
+  /* 核心样式：根据可用宽度自动创建列，每列最小 50px */
+  grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
+  gap: 8px; /* 端口块之间的间距 */
   margin-top: 15px;
 }
-.results-table th,
-.results-table td {
-  padding: 10px;
-  text-align: left;
-  border-bottom: 1px solid #ddd;
-}
-.results-table th {
-  background-color: #f0fdf4;
-  color: #36a374;
-  font-weight: 700;
-}
-.results-table tr.open {
-  background-color: #e6ffed; /* 开放端口高亮 */
+
+.result-block {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 50px; /* 方块高度 */
+  width: 100%; /* 确保在网格中占满宽度 */
+  padding: 5px;
+  border-radius: 4px;
   font-weight: 600;
+  font-size: 0.9rem;
+  cursor: default;
+  transition: background-color 0.2s, box-shadow 0.2s;
+  /* 默认/关闭/过滤状态 */
+  background-color: #f7f7f7;
+  color: #4b5563; /* 灰色文字 */
+  border: 1px solid #e5e7eb;
 }
-.results-code {
-  /* ... 保持不变 ... */
+
+/* 开放端口的视觉样式 (Open) - 绿色 */
+.result-block.open {
+  background-color: #10b981; /* Tailwind green-500 */
+  color: white;
+  border-color: #059669;
+  box-shadow: 0 4px 6px rgba(16, 185, 129, 0.4); /* 绿色阴影 */
+  transform: scale(1.05); /* 稍微放大 */
+}
+
+.result-block:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* 其他组件的通用样式 */
+.raw-results-details summary {
+  list-style: none; /* 移除默认箭头 */
+}
+.raw-results-details summary::before {
+  content: "▶"; /* 自定义箭头 */
+  display: inline-block;
+  margin-right: 8px;
+  transition: transform 0.2s;
+}
+.raw-results-details[open] summary::before {
+  content: "▼";
+  transform: rotate(0deg);
 }
 </style>

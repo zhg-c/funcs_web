@@ -31,13 +31,11 @@ import { RouterView } from "vue-router";
 .main-content {
   flex-grow: 1; /* 占据剩余垂直空间 */
   display: flex;
-  max-width: 1200px;
-  width: 90%;
-  margin: 20px auto;
+  width: 100%;
   gap: 20px;
 }
 .core-area {
-  flex: 3; /* 核心内容占据 75% 宽度 */
+  flex: 9; /* 核心内容占据 75% 宽度 */
   background-color: white;
   padding: 30px;
   border-radius: 8px;
