@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { ref } from "vue";
 
 // 定义扫描结果的数据结构
@@ -81,7 +81,7 @@ const scanPorts = async () => {
         <div class="col-span-1 md:col-span-2">
           <label
             for="target"
-            class="block text-sm font-medium text-gray-700 mb-1"
+            class="block text-sm font-semibold text-gray-700 mb-2"
             >目标 IP / 域名</label
           >
           <input
@@ -97,7 +97,7 @@ const scanPorts = async () => {
         <div class="col-span-1">
           <label
             for="ports"
-            class="block text-sm font-medium text-gray-700 mb-1"
+            class="block text-sm font-semibold text-gray-700 mb-2"
             >端口范围 (Port Range)</label
           >
           <input
@@ -113,16 +113,19 @@ const scanPorts = async () => {
         <div class="col-span-1">
           <label
             for="scan-type"
-            class="block text-sm font-medium text-gray-700 mb-1"
+            class="block text-sm font-semibold text-gray-700 mb-2"
             >协议</label
           >
+          <!-- 协议 (Protocol) 的 select 标签 -->
           <select
             id="scan-type"
             v-model="scanType"
-            class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 bg-white"
+            class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150 bg-white shadow-sm appearance-none"
           >
+             
             <option value="tcp">TCP (默认)</option>
-            <!-- 移除 UDP 选项 -->
+             
+            <option value="udp">UDP</option>
           </select>
         </div>
       </div>
@@ -221,10 +224,12 @@ const scanPorts = async () => {
   background-color: #10b981; /* Tailwind green-500 */
   color: white;
   border-color: #059669;
-  box-shadow: 0 4px 6px rgba(16, 185, 129, 0.4); /* 绿色阴影 */
-  transform: scale(1.05); /* 稍微放大 */
+  /* 移除原来的静态阴影 */
+  box-shadow: 0 4px 10px rgba(16, 185, 129, 0.4);
+  transform: scale(1.02); /* 略微缩小放大效果 */
+  /* 应用脉冲动画 */
+  animation: pulse-glow 2s infinite cubic-bezier(0.66, 0, 0.34, 1);
 }
-
 .result-block:hover {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
@@ -242,5 +247,17 @@ const scanPorts = async () => {
 .raw-results-details[open] summary::before {
   content: "▼";
   transform: rotate(0deg);
+}
+/* 新增：开放端口的脉冲动画 */
+@keyframes pulse-glow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6); /* 初始状态，柔和绿色 */
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); /* 扩散到 10px 后完全透明 */
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
 }
 </style>
