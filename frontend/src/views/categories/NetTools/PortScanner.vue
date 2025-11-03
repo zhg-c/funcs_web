@@ -1,5 +1,5 @@
 ﻿<script setup lang="ts">
-import { ref } from "vue"; // onMounted 已移除
+import { ref, computed } from "vue"; // onMounted 已移除
 
 // 定义扫描结果的数据结构 (已修复: 替换 interface 为 type 以避免编译问题)
 type ScanResult = {
@@ -11,6 +11,7 @@ type ScanResult = {
 const target = ref("127.0.0.1"); // 目标IP/域名
 const portRange = ref("1-1024"); // 端口范围
 const scanType = ref("tcp"); // 扫描类型 ("tcp" 或 "udp")
+const showOnlyOpenPorts = ref(false); // 状态：控制是否只显示开放端口
 const rawResults = ref<string>('点击 "开始扫描" 查看结果'); // 用于显示原始 JSON 字符串
 const formattedResults = ref<ScanResult[]>([]); // 用于表格或列表展示
 const isLoading = ref(false);
@@ -19,11 +20,24 @@ const error = ref<string | null>(null);
 // 🚨 API 基础 URL：根据您当前的运行环境选择
 const API_BASE_URL = "http://192.168.10.106:8000/api/v1";
 
+// ------------------- 计算属性：根据复选框过滤结果 -------------------
+
+const filteredResults = computed(() => {
+  if (showOnlyOpenPorts.value) {
+    // 只有勾选了复选框时，才过滤出状态为 'Open' 的端口
+    return formattedResults.value.filter((result) => result.status === "Open");
+  }
+  // 否则，显示所有结果
+  return formattedResults.value;
+});
+
 // ------------------- 新增：CSV 导出功能 -------------------
 
 const exportToCsv = () => {
-  if (formattedResults.value.length === 0) {
-    // 使用 console 替代 alert()
+  // 导出时，导出当前视图中的结果 (即 filteredResults)
+  const resultsToExport = filteredResults.value;
+
+  if (resultsToExport.length === 0) {
     console.error("无法导出：没有扫描结果。");
     return;
   }
@@ -32,7 +46,7 @@ const exportToCsv = () => {
   let csvContent = "Port,Status,Service\n";
 
   // 格式化数据行
-  formattedResults.value.forEach((result) => {
+  resultsToExport.forEach((result) => {
     // 确保 Service 字段不会包含逗号导致 CSV 格式混乱
     const serviceSafe = (result.service || "Unknown").replace(/,/g, "");
     csvContent += `${result.port},${result.status},${serviceSafe}\n`;
@@ -218,7 +232,22 @@ const scanPorts = async () => {
             <option value="udp">UDP</option>
                      
           </select>
-                 
+             <!-- 新增：只显示开放端口复选框 -->
+          <div class="mt-4 flex items-center">
+            <input
+              id="show-open"
+              v-model="showOnlyOpenPorts"
+              type="checkbox"
+              class="h-4 w-4 text-green-600 border-gray-300 rounded focus:ring-green-500 cursor-pointer"
+            />
+            <label
+              for="show-open"
+              class="ml-2 block text-sm font-medium text-gray-700 select-none cursor-pointer"
+            >
+              只显示开放端口
+            </label>
+          </div>
+             
         </div>
              
       </div>
@@ -265,13 +294,13 @@ const scanPorts = async () => {
         <!-- 新增：导出按钮 -->
         <button
           @click="exportToCsv"
-          :disabled="formattedResults.length === 0"
+          :disabled="filteredResults.length === 0"
           class="w-full sm:w-1/4 py-3 px-4 font-bold text-sm rounded-xl shadow-lg transition duration-300 ease-in-out transform hover:scale-[1.005] focus:outline-none focus:ring-4 focus:ring-green-500 focus:ring-opacity-70"
           :class="{
             'bg-green-500 text-white hover:bg-green-600':
-              formattedResults.length > 0,
+              filteredResults.length > 0,
             'bg-gray-300 text-gray-500 cursor-not-allowed':
-              formattedResults.length === 0,
+              filteredResults.length === 0,
           }"
         >
           📥 导出 CSV
@@ -314,10 +343,10 @@ const scanPorts = async () => {
            
       <!-- 紧凑数字网格布局 -->
            
-      <div v-if="formattedResults.length" class="results-grid">
+      <div v-if="filteredResults.length" class="results-grid">
                
         <div
-          v-for="result in formattedResults"
+          v-for="result in filteredResults"
           :key="result.port"
           class="result-block"
           :class="{
@@ -329,40 +358,10 @@ const scanPorts = async () => {
             result.service || '未知'
           }`"
         >
-          <!-- 开放端口显示端口号和发现的服务 -->
-          <div
-            v-if="result.status === 'Open'"
-            class="flex flex-col items-center"
-          >
-            <span class="text-lg font-bold">{{ result.port }}</span>
-            <span
-              v-if="result.service"
-              class="text-xs font-light mt-[-4px] opacity-90"
-              >{{ result.service }}</span
-            >
-          </div>
-          <!-- 其他状态只显示端口号 -->
-          <div v-else class="text-lg font-bold">
+          <div class="text-lg font-bold">
             {{ result.port }}
           </div>
                  
-        </div>
-               
-        <div
-          v-if="
-            scanType === 'udp' &&
-            formattedResults.every(
-              (r) =>
-                r.status ===
-                'Error: Requires CAP_NET_RAW or root to use RAW sockets'
-            )
-          "
-          class="col-span-full p-4 bg-yellow-100 text-yellow-800 rounded-lg mt-4 text-center"
-        >
-                    <strong>UDP 扫描提示：</strong> 由于安全限制，UDP
-          扫描需要原始套接字权限
-          (root/CAP_NET_RAW)。如果您在受限环境中运行，结果可能显示为错误。      
-           
         </div>
              
       </div>
