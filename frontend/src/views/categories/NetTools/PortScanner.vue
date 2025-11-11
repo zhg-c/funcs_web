@@ -149,206 +149,63 @@ const scanPorts = async () => {
 </script>
 
 <template>
-   
-  <!-- Main container with max-width and auto margins for centering on desktop -->
-   
-  <div class="port-scanner-view max-w-4xl mx-auto p-4 font-sans">
-       
-    <h1 class="text-3xl font-extrabold mb-8 text-gray-900 border-b pb-2">
-      🌐 端口扫描器
-    </h1>
-
-       
-    <!-- 输入表单区域 -->
-       
-    <div
-      class="input-form bg-white p-6 rounded-xl shadow-2xl mb-8 border border-gray-100"
-    >
-           
-      <!-- Use items-start to ensure labels align neatly above inputs -->
-           
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-6 items-start">
-               
-        <!-- 目标 IP/域名 -->
-               
-        <div class="col-span-1 md:col-span-2">
-                   
-          <label
-            for="target"
-            class="block text-sm font-semibold text-gray-700 mb-2"
-            >目标 IP / 域名</label
-          >
-                   
-          <input
-            id="target"
-            v-model="target"
-            type="text"
-            placeholder="e.g., 127.0.0.1 or example.com"
-            class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150 shadow-sm"
-          />
-                 
-        </div>
-
-               
-        <!-- 端口范围 -->
-               
-        <div class="col-span-1">
-                   
-          <label
-            for="ports"
-            class="block text-sm font-semibold text-gray-700 mb-2"
-            >端口范围 (Port Range)</label
-          >
-                   
-          <input
-            id="ports"
-            v-model="portRange"
-            type="text"
-            placeholder="e.g., 1-1024 or 22,80,443"
-            class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150 shadow-sm"
-          />
-                 
-        </div>
-
-               
-        <!-- 协议 (Protocol) -->
-               
-        <div class="col-span-1">
-                   
-          <label
-            for="scan-type"
-            class="block text-sm font-semibold text-gray-700 mb-2"
-            >协议 (Protocol)</label
-          >
-                   
-          <select
-            id="scan-type"
-            v-model="scanType"
-            class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150 bg-white shadow-sm appearance-none"
-          >
-                       
-            <option value="tcp">TCP (默认)</option>
-                       
-            <option value="udp">UDP</option>
-                     
-          </select>
-             <!-- 新增：只显示开放端口复选框 -->
-          <div class="mt-4 flex items-center">
-            <input
-              id="show-open"
-              v-model="showOnlyOpenPorts"
-              type="checkbox"
-              class="h-4 w-4 text-green-600 border-gray-300 rounded focus:ring-green-500 cursor-pointer"
-            />
-            <label
-              for="show-open"
-              class="ml-2 block text-sm font-medium text-gray-700 select-none cursor-pointer"
-            >
-              只显示开放端口
-            </label>
-          </div>
-             
-        </div>
-             
-      </div>
-
-           
-      <!-- 扫描按钮和导出按钮 -->
-      <div class="flex flex-col sm:flex-row gap-4 mt-8">
-        <!-- 扫描按钮 -->
-        <button
-          @click="scanPorts"
+  <div class="params">
+    <h2>🌐 端口扫描器</h2>
+    <div class="scan-form">
+      <form action="#">
+        <label for="target">目标IP/域名：</label>
+        <input
+          type="text"
+          name="target"
+          id="target"
+          v-model="target"
+          placeholder="比如：127.0.0.1 或 example.com"
+        />
+        <label for="ports">端口范围：</label>
+        <input
+          type="text"
+          name="ports"
+          id="ports"
+          v-model="portRange"
+          placeholder="比如：1-1024 或 22,80,443"
+        />
+        <label for="scan-type">网络协议：</label>
+        <select name="scan-type" id="scan-type" v-model="scanType">
+          <option value="tcp">TCP</option>
+          <option value="udp">UDP</option>
+        </select>
+        <input
+          type="submit"
+          name="protocol"
+          id="protocol"
+          :value="isLoading ? '正在扫描...' : '开始扫描'"
           :disabled="isLoading"
-          class="scan-button w-full sm:w-3/4 py-3 px-4 font-bold text-lg rounded-xl shadow-lg transition duration-300 ease-in-out transform hover:scale-[1.005] hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-blue-500 focus:ring-opacity-70"
-          :class="{
-            'bg-blue-600 text-white hover:bg-blue-700': !isLoading,
-            'bg-gray-400 text-gray-700 cursor-not-allowed': isLoading,
-          }"
-        >
-          <span v-if="isLoading">
-            <svg
-              class="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                class="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                stroke-width="4"
-              ></circle>
-              <path
-                class="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              ></path>
-            </svg>
-            扫描中...
-          </span>
-          <span v-else> 🚀 开始扫描 </span>
-        </button>
-
-        <!-- 新增：导出按钮 -->
-        <button
-          @click="exportToCsv"
-          :disabled="filteredResults.length === 0"
-          class="w-full sm:w-1/4 py-3 px-4 font-bold text-sm rounded-xl shadow-lg transition duration-300 ease-in-out transform hover:scale-[1.005] focus:outline-none focus:ring-4 focus:ring-green-500 focus:ring-opacity-70"
-          :class="{
-            'bg-green-500 text-white hover:bg-green-600':
-              filteredResults.length > 0,
-            'bg-gray-300 text-gray-500 cursor-not-allowed':
-              filteredResults.length === 0,
-          }"
-        >
-          📥 导出 CSV
-        </button>
-      </div>
-
-           
-      <!-- 错误信息显示 -->
-           
-      <div
-        v-if="error"
-        class="mt-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm font-medium"
-      >
-                <strong>错误:</strong> {{ error }}      
-      </div>
-         
+          @click="scanPorts"
+        />
+      </form>
     </div>
-
-    <!-- (移除历史记录区域) -->
-
-       
-    <!-- 状态和结果区域 -->
-       
-    <div class="results-area mt-10">
-           
-      <h2 class="text-2xl font-bold mb-6 text-gray-800">结果可视化</h2>
-
-           
-      <!-- 状态消息 -->
-           
-      <div
-        v-if="formattedResults.length"
-        class="p-4 bg-green-50 text-green-700 rounded-lg font-medium mb-6 border border-green-200"
-      >
-                扫描完成！共发现
-        {{ formattedResults.filter((r) => r.status === "Open").length }}
-        个开放端口。      
+  </div>
+  <div class="results">
+    <br />
+    <div class="err" v-if="error"><strong>错误:</strong> {{ error }}</div>
+    <div v-if="formattedResults.length">
+      <div>
+        <label for="show-open">只显示开放端口</label>
+        <input type="checkbox" name="show-open" v-model="showOnlyOpenPorts" />
+        <div>
+          <button @click="exportToCsv">📥 导出 CSV 格式</button>
+        </div>
       </div>
-
-           
-      <!-- 紧凑数字网格布局 -->
-           
-      <div v-if="filteredResults.length" class="results-grid">
-               
+      <h3>扫描结果</h3>
+      <p>
+        扫描完成！共发现
+        {{ formattedResults.filter((r) => r.status === "Open").length }}
+        个开放端口。
+      </p>
+      <div class="all-ports">
         <div
           v-for="result in filteredResults"
           :key="result.port"
-          class="result-block"
           :class="{
             open: result.status === 'Open',
             closed: result.status === 'Closed',
@@ -358,53 +215,99 @@ const scanPorts = async () => {
             result.service || '未知'
           }`"
         >
-          <div class="text-lg font-bold">
-            {{ result.port }}
-          </div>
-                 
+          {{ result.port }}
         </div>
-             
       </div>
-
-           
-      <!-- 原始结果（调试用） -->
-           
-      <details class="raw-results-details mt-8">
-               
-        <summary
-          class="cursor-pointer font-semibold text-gray-700 hover:text-gray-900 transition duration-150"
-        >
-                    原始 API 响应 (JSON)        
-        </summary>
-               
-        <pre
-          class="results-code bg-gray-900 text-gray-200 p-6 rounded-lg mt-3 text-sm overflow-x-auto shadow-inner"
-          >{{ rawResults }}</pre
-        >
-             
-      </details>
-         
     </div>
-     
   </div>
 </template>
 <style scoped>
-/* 紧凑数字网格样式 */
-.results-grid {
+.params {
   display: grid;
-  /* 核心样式：根据可用宽度自动创建列，每列最小 50px */
-  grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
-  gap: 8px; /* 端口块之间的间距 */
-  margin-top: 15px;
+  place-items: center;
+}
+div.scan-form {
+  display: grid;
+  place-items: center;
+  max-width: 600px;
+  width: 100%;
+  border: 2px solid #04aa6d;
+  border-radius: 4px;
+  background-color: #f2f2f2;
+  padding: 20px;
+}
+form {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+label {
+  min-width: 48%;
+  margin-bottom: 10px;
+}
+input[type="text"],
+select {
+  min-width: 45%;
+  margin-bottom: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 10px;
+}
+input[type="submit"] {
+  margin: 20px auto 0;
+  width: 50%;
+  background-color: #04aa46;
+  color: white;
+  padding: 9px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+@media screen and (max-width: 600px) {
+  label,
+  input[type="text"],
+  input[type="submit"],
+  select,
+  textarea {
+    flex: 100%;
+    min-width: 100%;
+  }
 }
 
-.result-block {
+.err {
+  display: flex;
+  align-items: center;
+  gap: 8px; /* strong 与文字之间的间距 */
+  padding: 12px 16px;
+  margin-top: 12px;
+
+  background-color: #fee2e2; /* 浅红背景 */
+  color: #991b1b; /* 深红文字 */
+  border: 1px solid #fca5a5; /* 红色边框 */
+  border-radius: 6px; /* 圆角 */
+  font-size: 0.9rem;
+  font-weight: 500;
+
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: background-color 0.3s, box-shadow 0.3s;
+}
+
+.err strong {
+  color: #b91c1c; /* 稍深一点的红色强调“错误:” */
+}
+
+.all-ports {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
+  gap: 8px;
+  margin-top: 15px;
+}
+.all-ports div {
   display: flex;
   align-items: center;
   justify-content: center;
   height: 50px; /* 方块高度 */
   width: 100%; /* 确保在网格中占满宽度 */
-  padding: 5px;
   border-radius: 4px;
   font-weight: 600;
   font-size: 0.9rem;
@@ -415,9 +318,7 @@ const scanPorts = async () => {
   color: #4b5563; /* 灰色文字 */
   border: 1px solid #e5e7eb;
 }
-
-/* 开放端口的视觉样式 (Open) - 绿色 */
-.result-block.open {
+.all-ports div.open {
   background-color: #10b981; /* Tailwind green-500 */
   color: white;
   border-color: #059669;
@@ -427,25 +328,9 @@ const scanPorts = async () => {
   /* 应用脉冲动画 */
   animation: pulse-glow 2s infinite cubic-bezier(0.66, 0, 0.34, 1);
 }
-.result-block:hover {
+.all-ports div:hover {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
-
-/* 其他组件的通用样式 */
-.raw-results-details summary {
-  list-style: none; /* 移除默认箭头 */
-}
-.raw-results-details summary::before {
-  content: "▶"; /* 自定义箭头 */
-  display: inline-block;
-  margin-right: 8px;
-  transition: transform 0.2s;
-}
-.raw-results-details[open] summary::before {
-  content: "▼";
-  transform: rotate(0deg);
-}
-/* 新增：开放端口的脉冲动画 */
 @keyframes pulse-glow {
   0% {
     box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6); /* 初始状态，柔和绿色 */
