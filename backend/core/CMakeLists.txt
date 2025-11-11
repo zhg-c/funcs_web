@@ -17,4 +17,5 @@ pybind11_add_module(port_scanner_core
 # 这样 Python 才能通过相对导入找到它
 set_target_properties(port_scanner_core PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+    LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 )
