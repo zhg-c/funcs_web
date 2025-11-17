@@ -2,9 +2,7 @@
   <header class="header">
     <div class="logo">C++ 加速服务平台</div>
     <nav>
-      <a href="#">首页</a>
-      <a href="#">关于我们</a>
-      <a href="#">联系</a>
+      <a href="/">首页</a>
     </nav>
   </header>
 </template>

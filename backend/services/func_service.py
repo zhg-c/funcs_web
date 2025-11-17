@@ -1,7 +1,7 @@
-# backend/services/scan_service.py
+# backend/services/func_service.py
 
-from ..core.port_scanner import execute_scan
-from ..schemas.scan import ScanRequest, ScanResult
+from ..core.func import execute_scan, execute_whois
+from ..schemas.func import ScanRequest, ScanResult, WhoisInfo, comRequest
 
 
 def process_port_scan(request: ScanRequest) -> list[ScanResult]:
@@ -27,3 +27,25 @@ def process_port_scan(request: ScanRequest) -> list[ScanResult]:
         results.append(ScanResult(**d))
 
     return results
+
+
+def process_whois(request: comRequest) -> WhoisInfo:
+    """
+    业务逻辑：接收请求，调用核心模块，并返回 Pydantic 模型列表。
+    """
+    raw_data = execute_whois(request.target)
+    whois_info_dict = {
+        "domain": raw_data.domain,
+        "registryDomainID": raw_data.registryDomainID,
+        "registrar": raw_data.registrar,
+        "registrarWhoisServer": raw_data.registrarWhoisServer,
+        "registrarURL": raw_data.registrarURL,
+        "creationDate": raw_data.creationDate,
+        "updatedDate": raw_data.updatedDate,
+        "expiryDate": raw_data.expiryDate,
+        "statuses": raw_data.statuses,
+        "nameServers": raw_data.nameServers,
+        "dnssec": raw_data.dnssec,
+    }
+
+    return whois_info_dict

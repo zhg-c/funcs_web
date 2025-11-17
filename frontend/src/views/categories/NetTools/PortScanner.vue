@@ -103,7 +103,7 @@ const scanPorts = async () => {
 
   const makeApiCall = async (retryCount = 0): Promise<any> => {
     try {
-      const response = await fetch(`${API_BASE_URL}/scan/ports`, {
+      const response = await fetch(`${API_BASE_URL}/func/ports`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -222,80 +222,7 @@ const scanPorts = async () => {
   </div>
 </template>
 <style scoped>
-.params {
-  display: grid;
-  place-items: center;
-}
-div.scan-form {
-  display: grid;
-  place-items: center;
-  max-width: 600px;
-  width: 100%;
-  border: 2px solid #04aa6d;
-  border-radius: 4px;
-  background-color: #f2f2f2;
-  padding: 20px;
-}
-form {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-}
-label {
-  min-width: 48%;
-  margin-bottom: 10px;
-}
-input[type="text"],
-select {
-  min-width: 45%;
-  margin-bottom: 10px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  padding: 10px;
-}
-input[type="submit"] {
-  margin: 20px auto 0;
-  width: 50%;
-  background-color: #04aa46;
-  color: white;
-  padding: 9px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-@media screen and (max-width: 600px) {
-  label,
-  input[type="text"],
-  input[type="submit"],
-  select,
-  textarea {
-    flex: 100%;
-    min-width: 100%;
-  }
-}
-
-.err {
-  display: flex;
-  align-items: center;
-  gap: 8px; /* strong 与文字之间的间距 */
-  padding: 12px 16px;
-  margin-top: 12px;
-
-  background-color: #fee2e2; /* 浅红背景 */
-  color: #991b1b; /* 深红文字 */
-  border: 1px solid #fca5a5; /* 红色边框 */
-  border-radius: 6px; /* 圆角 */
-  font-size: 0.9rem;
-  font-weight: 500;
-
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-  transition: background-color 0.3s, box-shadow 0.3s;
-}
-
-.err strong {
-  color: #b91c1c; /* 稍深一点的红色强调“错误:” */
-}
-
+@import "@/assets/netTools.css";
 .all-ports {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));

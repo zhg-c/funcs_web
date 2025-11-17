@@ -1,8 +1,6 @@
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
+#include "func_core.h"
+
 #include <iostream>
-#include <vector>
-#include <string>
 #include <sstream>
 #include <map>
 #include <chrono> // 用于计时
@@ -22,8 +20,12 @@
 #include <sys/time.h> // For timeval struct used in select
 #include <netinet/ip.h> // For iphdr
 #include <netinet/ip_icmp.h> // For icmphdr and ICMP types
-
-namespace py = pybind11;
+#include <stdio.h> //scanf , printf
+#include <string.h> //strtok
+#include <stdlib.h> //realloc
+#include <string>
+#include <vector>
+#include <algorithm>
 
 // 定义超时时间 (毫秒)
 constexpr int TIMEOUT_MS = 500;
@@ -32,28 +34,13 @@ constexpr int UDP_TIMEOUT_MS = 2000;
 // ICMP 监听套接字接收超时时间 (较短，用于快速循环)
 constexpr int ICMP_RECV_TIMEOUT_MS = 100;
 
-// =================================================================
-// C++ Data Structures matching Python Schemas
-// =================================================================
-
-// 端口扫描结果结构体 (对应 Python 的 ScanResult)
-struct PortScanResult {
-	int port;
-	std::string status;
-	std::string service; // 服务的识别逻辑将在 Python 层处理，这里暂时返回空或模拟值
-};
-
-// =================================================================
-// CORE SCANNING LOGIC (TCP Connect Scan)
-// =================================================================
-
 /**
  * @brief 尝试与指定 IP 和端口建立 TCP 连接。
  * @param ip_address 目标IP地址
  * @param port 目标端口
  * @return 状态 ("Open", "Closed", "Filtered")
  */
-std::string tcp_connect_scan(const std::string &ip_address, int port)
+std::string ports_scan::tcp_connect_scan(const std::string &ip_address, int port)
 {
 	int sock = -1;
 	std::string result = "Closed";
@@ -145,7 +132,7 @@ std::string tcp_connect_scan(const std::string &ip_address, int port)
  * @param port 目标端口
  * @return 状态 ("Open", "Closed", "Filtered", or "Error:...")
  */
-std::string udp_scan(const std::string &target, int port)
+std::string ports_scan::udp_scan(const std::string &target, int port)
 {
 	// 1. 创建 UDP 套接字 (用于发送数据)
 	int udp_sock = socket(AF_INET, SOCK_DGRAM, 0);
@@ -246,7 +233,7 @@ std::string udp_scan(const std::string &target, int port)
 }
 
 // 辅助函数：解析端口范围字符串 ("1-100,22,8080")
-std::vector<int> parse_ports(const std::string &ports_str)
+std::vector<int> ports_scan::parse_ports(const std::string &ports_str)
 {
 	std::vector<int> ports;
 	std::stringstream ss(ports_str);
@@ -287,7 +274,7 @@ std::vector<int> parse_ports(const std::string &ports_str)
  * @param scan_type 扫描类型 ("tcp" 或 "udp")
  * @return std::vector<PortScanResult> 端口扫描结果列表
  */
-std::vector<PortScanResult> execute_scan_core(
+std::vector<PortScanResult> ports_scan::execute_scan(
 	const std::string &target,
 	const std::string &ports_str,
 	const std::string &scan_type)
@@ -346,23 +333,142 @@ std::vector<PortScanResult> execute_scan_core(
 	return results;
 }
 
-// =================================================================
-// Pybind11 Binding
-// =================================================================
-
-PYBIND11_MODULE(port_scanner_core, m)
+bool whois::beginsWith(const std::string &s, const std::string &prefix)
 {
-	m.doc() = "Pybind11 wrapper for the C++ port scanning core.";
+	return s.rfind(prefix, 0) == 0;
+}
+std::string whois::trim(const std::string &s)
+{
+	size_t start = s.find_first_not_of(" \t\r\n");
+	size_t end = s.find_last_not_of(" \t\r\n");
+	if (start == std::string::npos)
+		return "";
+	return s.substr(start, end - start + 1);
+}
+WhoisInfo whois::parseWhois(const std::string &rawText)
+{
+	WhoisInfo info;
+	std::stringstream ss(rawText);
+	std::string line;
 
-	// 1. 绑定 C++ 结构体 PortScanResult 到 Python 类
-	py::class_<PortScanResult>(m, "PortScanResult")
-		.def(py::init<>())
-		.def_readwrite("port", &PortScanResult::port)
-		.def_readwrite("status", &PortScanResult::status)
-		.def_readwrite("service", &PortScanResult::service);
+	while (std::getline(ss, line, '\n')) {
+		line = trim(line);
 
-	// 2. 绑定核心扫描函数 execute_scan_core
-	m.def("execute_scan", &execute_scan_core,
-		"Executes a port scan against a target.",
-		py::arg("target"), py::arg("ports_str"), py::arg("scan_type"));
+		// 跳过空行 / 噪声
+		if (line.empty())
+			continue;
+
+		// 去除控制字符(\u0000等)
+		line.erase(std::remove_if(line.begin(), line.end(),
+					   [](char c) { return (unsigned char)c < 32; }),
+			line.end());
+
+		// ---- 匹配关键字段 ----
+		if (beginsWith(line, "Domain Name:")) {
+			info.domain = trim(line.substr(12));
+		} else if (beginsWith(line, "Registry Domain ID:")) {
+			info.registryDomainID = trim(line.substr(19));
+		} else if (beginsWith(line, "Registrar WHOIS Server:")) {
+			info.registrarWhoisServer = trim(line.substr(23));
+		} else if (beginsWith(line, "Registrar URL:")) {
+			info.registrarURL = trim(line.substr(14));
+		} else if (beginsWith(line, "Registrar:")) {
+			info.registrar = trim(line.substr(10));
+		} else if (beginsWith(line, "Creation Date:")) {
+			info.creationDate = trim(line.substr(14));
+		} else if (beginsWith(line, "Updated Date:")) {
+			info.updatedDate = trim(line.substr(13));
+		} else if (beginsWith(line, "Registry Expiry Date:")) {
+			info.expiryDate = trim(line.substr(20));
+		} else if (beginsWith(line, "Domain Status:")) {
+			info.statuses.push_back(trim(line.substr(14)));
+		} else if (beginsWith(line, "Name Server:")) {
+			info.nameServers.push_back(trim(line.substr(12)));
+		} else if (beginsWith(line, "DNSSEC:")) {
+			info.dnssec = trim(line.substr(7));
+		}
+	}
+
+	return info;
+}
+bool whois::hostname2ip(const char *hostname, std::string &ip)
+{
+	struct hostent *he;
+	struct in_addr **addr_list;
+	if ((he = gethostbyname(hostname)) == nullptr) {
+		return false;
+	}
+	addr_list = (struct in_addr **)he->h_addr_list;
+	for (size_t i = 0; addr_list[i]; i++) {
+		ip = inet_ntoa(*addr_list[i]);
+		return true;
+	}
+	return false;
+}
+
+bool whois::whois_query(const char *server, const char *target, std::string &data)
+{
+	std::string ip, strTmp;
+	int sock = 0;
+	struct sockaddr_in dest;
+	sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	memset(&dest, 0, sizeof(dest));
+	dest.sin_family = AF_INET;
+	if (!hostname2ip(server, ip)) {
+		return false;
+	}
+	dest.sin_addr.s_addr = inet_addr(ip.data());
+	dest.sin_port = htons(43);
+	if (connect(sock, (const struct sockaddr *)&dest, sizeof(dest)) < 0) {
+		return false;
+	}
+	strTmp = target;
+	strTmp += "\r\n";
+	if (send(sock, strTmp.data(), strTmp.size(), 0) < 0) {
+		return false;
+	}
+	int r = 0;
+	char buff[2048] = {};
+	while ((r = recv(sock, buff, sizeof(buff), 0))) {
+		data += buff;
+	}
+	return true;
+}
+
+WhoisInfo whois::execute_whois(const char *target)
+{
+	std::string data;
+	if (!whois_query("whois.iana.org", target, data)) {
+		perror("whois_query");
+	}
+	char *wch = nullptr, *pch = nullptr;
+	pch = strtok(data.data(), "\n");
+	while (pch) {
+		wch = strstr(pch, "whois.");
+		if (wch) {
+			break;
+		}
+		pch = strtok(nullptr, "\n");
+	}
+	if (wch) {
+		whois_query(wch, target, data);
+	}
+	WhoisInfo info = parseWhois(data);
+	info.domain = target;
+	return info;
+}
+
+std::vector<PortScanResult> execute_scan_core(
+	const std::string &target,
+	const std::string &ports_str,
+	const std::string &scan_type)
+{
+	ports_scan scan;
+	return scan.execute_scan(target, ports_str, scan_type);
+}
+
+WhoisInfo execute_whois_core(const char *target)
+{
+	whois lookup;
+	return lookup.execute_whois(target);
 }

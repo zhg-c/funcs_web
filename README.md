@@ -2,7 +2,7 @@
 
 ```
 cmake .. -DPYBIND11_DIR=/home/zhg/work/funcs_web/.venv/lib/python3.13/site-packages/pybind11/share/cmake/pybind11
-mv port_scanner_core.cpython-313-x86_64-linux-gnu.so ..
+mv func_core.cpython-313-x86_64-linux-gnu.so ..
 ```
 
 #run serv
