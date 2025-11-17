@@ -71,3 +71,19 @@ input[type="submit"] {
 .err strong {
   color: #b91c1c; /* 稍深一点的红色强调“错误:” */
 }
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+th,
+td {
+  padding: 8px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+tr:hover {
+  background-color: coral;
+}

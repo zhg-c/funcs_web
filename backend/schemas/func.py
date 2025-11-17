@@ -6,6 +6,9 @@ class comRequest(BaseModel):
     target: str
 
 
+# --------------ports-------------------
+
+
 # 请求模型
 class ScanRequest(BaseModel):
     target: str
@@ -27,6 +30,9 @@ class ScanResponse(BaseModel):
     message: Optional[str] = None
 
 
+# --------------whois-------------------
+
+
 class WhoisInfo(BaseModel):
     domain: str
     registryDomainID: Optional[str] = None
@@ -44,4 +50,19 @@ class WhoisInfo(BaseModel):
 class WhoisResponse(BaseModel):
     status: str = "success"
     results: WhoisInfo
+    message: Optional[str] = None
+
+
+# --------------dns_record-------------------
+
+
+class DNSRecord(BaseModel):
+    type: str
+    value: str
+    ttl: Optional[int] = None
+
+
+class DNSRecordResponse(BaseModel):
+    status: str = "success"
+    results: List[DNSRecord]
     message: Optional[str] = None

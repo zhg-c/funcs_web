@@ -27,6 +27,10 @@
 #include <vector>
 #include <algorithm>
 
+#include <resolv.h>
+#include <arpa/nameser.h>
+#include <ldns/ldns.h>
+
 // 定义超时时间 (毫秒)
 constexpr int TIMEOUT_MS = 500;
 // UDP 扫描的总体超时时间
@@ -471,4 +475,61 @@ WhoisInfo execute_whois_core(const char *target)
 {
 	whois lookup;
 	return lookup.execute_whois(target);
+}
+
+std::vector<DNSRecord> execute_dns_record_core(const char *target)
+{
+	std::vector<DNSRecord> records;
+	ldns_resolver *res;
+	if (ldns_resolver_new_frm_file(&res, nullptr) != LDNS_STATUS_OK) {
+		std::cerr << "[DNS] Failed to init resolver" << std::endl;
+		return records;
+	}
+
+	ldns_rdf *name = ldns_dname_new_frm_str(target);
+	if (!name)
+		return records;
+
+	// 查询常用记录类型
+	ldns_rr_type types[] = { LDNS_RR_TYPE_A, LDNS_RR_TYPE_AAAA, LDNS_RR_TYPE_MX,
+		LDNS_RR_TYPE_NS, LDNS_RR_TYPE_CNAME, LDNS_RR_TYPE_TXT };
+
+	for (auto t : types) {
+		ldns_pkt *pkt = ldns_resolver_query(res, name, t, LDNS_RR_CLASS_IN, LDNS_RD);
+		if (!pkt)
+			continue;
+
+		ldns_rr_list *rrs = ldns_pkt_rr_list_by_type(pkt, t, LDNS_SECTION_ANSWER);
+		if (!rrs) {
+			ldns_pkt_free(pkt);
+			continue;
+		}
+
+		for (size_t i = 0; i < ldns_rr_list_rr_count(rrs); i++) {
+			ldns_rr *rr = ldns_rr_list_rr(rrs, i);
+			char *val = ldns_rdf2str(ldns_rr_rdf(rr, 0));
+			if (!val)
+				continue;
+
+			DNSRecord rec;
+			rec.ttl = ldns_rr_ttl(rr);
+			rec.type = ldns_rr_type2str(ldns_rr_get_type(rr));
+			rec.value = val;
+
+			// 去掉结尾换行符
+			if (!rec.value.empty() && rec.value.back() == '\n')
+				rec.value.pop_back();
+
+			records.push_back(rec);
+			free(val);
+		}
+
+		ldns_rr_list_deep_free(rrs);
+		ldns_pkt_free(pkt);
+	}
+
+	ldns_rdf_deep_free(name);
+	ldns_resolver_deep_free(res);
+
+	return records;
 }

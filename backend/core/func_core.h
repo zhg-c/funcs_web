@@ -1,26 +1,7 @@
 #pragma once
+#include "common.h"
 #include <string>
 #include <vector>
-
-struct PortScanResult {
-	int port;
-	std::string status;
-	std::string service; // 服务的识别逻辑将在 Python 层处理，这里暂时返回空或模拟值
-};
-
-struct WhoisInfo {
-	std::string domain;
-	std::string registryDomainID;
-	std::string registrar;
-	std::string registrarWhoisServer;
-	std::string registrarURL;
-	std::string creationDate;
-	std::string updatedDate;
-	std::string expiryDate;
-	std::vector<std::string> statuses;
-	std::vector<std::string> nameServers;
-	std::string dnssec;
-};
 
 class ports_scan {
 public:
@@ -60,3 +41,5 @@ std::vector<PortScanResult> execute_scan_core(
 	const std::string &ports_str,
 	const std::string &scan_type);
 WhoisInfo execute_whois_core(const char *target);
+
+std::vector<DNSRecord> execute_dns_record_core(const char *target);

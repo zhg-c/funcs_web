@@ -14,7 +14,7 @@ const fieldMap: Record<string, string> = {
   statuses: "域名状态",
   nameServers: "名称服务器",
 };
-const whois = ref<any | null>(null);
+const dns_record = ref<any | null>(null);
 const target = ref("127.0.0.1"); // 目标IP/域名
 const rawResults = ref<string>();
 const isLoading = ref(false);
@@ -36,7 +36,7 @@ const lookupDoman = async () => {
   };
   const makeApiCall = async (retryCount = 0): Promise<any> => {
     try {
-      const response = await fetch(`${API_BASE_URL}/func/whois`, {
+      const response = await fetch(`${API_BASE_URL}/func/dns_record`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -67,7 +67,7 @@ const lookupDoman = async () => {
     const data = await makeApiCall(); // 更新结果
 
     rawResults.value = data;
-    whois.value = data.results;
+    dns_record.value = data.results;
 
     // (移除历史记录保存逻辑)
   } catch (err: any) {
@@ -109,32 +109,24 @@ const lookupDoman = async () => {
     <br />
     <div class="err" v-if="error"><strong>错误:</strong> {{ error }}</div>
     <div class="params">
-      <div v-if="whois">
+      <div v-if="dns_record.length">
         <h3>查询结果</h3>
-
-        <div
-          v-for="(value, key) in whois"
-          :key="key"
-          style="margin-bottom: 10px"
-        >
-          <template v-if="Array.isArray(value)">
-            <!-- 处理列表字段 -->
-            <strong>{{ fieldMap[key] || key }}：</strong>
-            <ul>
-              <li v-for="(item, index) in value" :key="index">
-                {{ item }}
-              </li>
-            </ul>
-          </template>
-
-          <template v-else>
-            <!-- 处理普通字段 -->
-            <p>
-              <strong>{{ fieldMap[key] || key }}：</strong>
-              {{ value || "（无数据）" }}
-            </p>
-          </template>
-        </div>
+        <table border="1">
+          <thead>
+            <tr>
+              <th>类型</th>
+              <th>值</th>
+              <th>TTL</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(item, index) in dns_record" :key="index">
+              <td>{{ item.type }}</td>
+              <td>{{ item.value }}</td>
+              <td>{{ item.ttl ?? "-" }}</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
   </div>
