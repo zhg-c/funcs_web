@@ -109,7 +109,7 @@ const lookupDoman = async () => {
     <br />
     <div class="err" v-if="error"><strong>错误:</strong> {{ error }}</div>
     <div class="params">
-      <div v-if="whois">
+      <div v-if="whois && whois.length">
         <h3>查询结果</h3>
 
         <div
@@ -136,6 +136,7 @@ const lookupDoman = async () => {
           </template>
         </div>
       </div>
+      <div v-else><p>⚠️ 未查询到域名注册信息</p></div>
     </div>
   </div>
 </template>

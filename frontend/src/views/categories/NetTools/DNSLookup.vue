@@ -1,19 +1,6 @@
 <script setup lang="ts">
 import { ref } from "vue";
 
-const fieldMap: Record<string, string> = {
-  domain: "域名",
-  registryDomainID: "注册域名ID",
-  registrar: "注册商",
-  registrarWhoisServer: "注册商 WHOIS 服务器",
-  registrarURL: "注册商网站",
-  creationDate: "创建日期",
-  updatedDate: "更新日期",
-  expiryDate: "到期日期",
-  dnssec: "DNSSEC 状态",
-  statuses: "域名状态",
-  nameServers: "名称服务器",
-};
 const dns_record = ref<any | null>(null);
 const target = ref("127.0.0.1"); // 目标IP/域名
 const rawResults = ref<string>();
@@ -109,7 +96,7 @@ const lookupDoman = async () => {
     <br />
     <div class="err" v-if="error"><strong>错误:</strong> {{ error }}</div>
     <div class="params">
-      <div v-if="dns_record.length">
+      <div v-if="dns_record && dns_record.length">
         <h3>查询结果</h3>
         <table border="1">
           <thead>
@@ -128,6 +115,7 @@ const lookupDoman = async () => {
           </tbody>
         </table>
       </div>
+      <div v-else><p>⚠️ 暂无 DNS 记录</p></div>
     </div>
   </div>
 </template>
